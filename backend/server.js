@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const db = require("./db");
 const authRoutes = require("./routes/auth");
 const subjectRoutes = require("./routes/subject");
@@ -7,8 +8,14 @@ const statisticsRoutes = require("./routes/statistics");
 const dailyGoalRoutes = require("./routes/dailyGoal");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
 
+app.use(
+  cors({
+    origin: FRONTEND_ORIGIN
+  })
+);
 app.use(express.json());
 app.use(authRoutes);
 app.use("/subjects", subjectRoutes);
