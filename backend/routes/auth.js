@@ -101,7 +101,7 @@ router.post("/login", async (req, res) => {
 
     if (users.length === 0) {
       return res.status(401).json({
-        message: "Invalid email or password."
+        message: "아이디 또는 비밀번호가 잘못되었습니다."
       });
     }
 
@@ -110,7 +110,7 @@ router.post("/login", async (req, res) => {
 
     if (!isPasswordMatched) {
       return res.status(401).json({
-        message: "Invalid email or password."
+        message: "아이디 또는 비밀번호가 잘못되었습니다."
       });
     }
 

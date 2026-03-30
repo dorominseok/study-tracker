@@ -4,18 +4,88 @@ import { clearAuthSession, getAuthUser, isAuthenticated } from "../api/auth";
 import FeatureBox from "../components/FeatureBox";
 import { fetchDailyGoal } from "../api/dailyGoal";
 import { fetchSessions } from "../api/sessions";
-import { fetchDailyStatistics } from "../api/statistics";
+import { fetchDailyStatistics, fetchHeatmapStatistics } from "../api/statistics";
 import { formatDuration } from "../utils/format";
+
+function toDayKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function buildMonthlyHeatmap(sourceDays = [], year, month) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+  const firstWeekday = firstDay.getDay();
+  const totalsByDay = new Map(
+    sourceDays.map((row) => [String(row.day).slice(0, 10), Number(row.totalSeconds || 0)])
+  );
+
+  const dayItems = Array.from({ length: lastDay.getDate() }, (_, index) => {
+    const date = new Date(year, month - 1, index + 1);
+
+    return {
+      key: toDayKey(date),
+      dayNumber: index + 1,
+      totalSeconds: totalsByDay.get(toDayKey(date)) || 0,
+      isFuture: date > today
+    };
+  });
+
+  const mappedDays = dayItems.map((item) => {
+    if (item.isFuture) {
+      return { ...item, level: -1 };
+    }
+
+    if (item.totalSeconds === 0) {
+      return { ...item, level: 0 };
+    }
+
+    const totalMinutes = item.totalSeconds / 60;
+
+    if (totalMinutes <= 60) {
+      return { ...item, level: 1 };
+    }
+
+    if (totalMinutes <= 120) {
+      return { ...item, level: 2 };
+    }
+
+    if (totalMinutes <= 180) {
+      return { ...item, level: 3 };
+    }
+
+    return { ...item, level: 4 };
+  });
+
+  return [
+    ...Array.from({ length: firstWeekday }, (_, index) => ({
+      key: `empty-start-${year}-${month}-${index}`,
+      isPlaceholder: true
+    })),
+    ...mappedDays
+  ];
+}
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
   const [authenticated, setAuthenticated] = useState(isAuthenticated());
   const [user, setUser] = useState(getAuthUser());
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [summary, setSummary] = useState({
     totalSeconds: 0,
     goalMinutes: null,
     currentStatus: "로그인 후 확인 가능"
   });
+  const [heatmapDays, setHeatmapDays] = useState(() => buildMonthlyHeatmap([], currentYear, currentMonth));
   const [message, setMessage] = useState("");
 
   const featureItems = useMemo(
@@ -51,16 +121,18 @@ function DashboardPage() {
         goalMinutes: null,
         currentStatus: "로그인 후 확인 가능"
       });
+      setHeatmapDays(buildMonthlyHeatmap([], currentYear, selectedMonth));
       setMessage("");
       return;
     }
 
     async function loadSummary() {
       try {
-        const [dailyData, goalData, sessionData] = await Promise.all([
+        const [dailyData, goalData, sessionData, heatmapData] = await Promise.all([
           fetchDailyStatistics(),
           fetchDailyGoal(),
-          fetchSessions()
+          fetchSessions(),
+          fetchHeatmapStatistics(currentYear, selectedMonth)
         ]);
 
         const currentSession = sessionData.sessions.find(
@@ -76,6 +148,7 @@ function DashboardPage() {
               : "잠시 쉬는중"
             : "공부 시작 전"
         });
+        setHeatmapDays(buildMonthlyHeatmap(heatmapData.days || [], currentYear, selectedMonth));
         setMessage("");
       } catch (error) {
         setMessage(error.message);
@@ -83,7 +156,7 @@ function DashboardPage() {
     }
 
     loadSummary();
-  }, [authenticated]);
+  }, [authenticated, currentYear, selectedMonth]);
 
   function handleFeatureNavigate(path) {
     if (authenticated) {
@@ -103,8 +176,19 @@ function DashboardPage() {
       goalMinutes: null,
       currentStatus: "로그인 후 확인 가능"
     });
+    setHeatmapDays(buildMonthlyHeatmap([], currentYear, selectedMonth));
     navigate("/", { replace: true });
   }
+
+  function handlePreviousMonth() {
+    setSelectedMonth((prev) => Math.max(1, prev - 1));
+  }
+
+  function handleNextMonth() {
+    setSelectedMonth((prev) => Math.min(12, prev + 1));
+  }
+
+  const monthLabel = `${currentYear}년 ${selectedMonth}월`;
 
   return (
     <div className="app-shell">
@@ -179,6 +263,67 @@ function DashboardPage() {
           </div>
 
           <div className="section-box">
+            <div className="heatmap-header">
+              <h2 className="section-title heatmap-title">공부 캘린더</h2>
+              <div className="month-switcher">
+                <button
+                  className="triangle-button"
+                  type="button"
+                  onClick={handlePreviousMonth}
+                  disabled={selectedMonth === 1}
+                  aria-label="이전 달"
+                >
+                  ◀
+                </button>
+                <div className="month-switcher-label">{monthLabel}</div>
+                <button
+                  className="triangle-button"
+                  type="button"
+                  onClick={handleNextMonth}
+                  disabled={selectedMonth === 12}
+                  aria-label="다음 달"
+                >
+                  ▶
+                </button>
+              </div>
+              <div className="heatmap-legend">
+                <span>Less</span>
+                <div className="heatmap-legend-scale">
+                  <span className="month-heatmap-cell heatmap-level-0" />
+                  <span className="month-heatmap-cell heatmap-level-1" />
+                  <span className="month-heatmap-cell heatmap-level-2" />
+                  <span className="month-heatmap-cell heatmap-level-3" />
+                  <span className="month-heatmap-cell heatmap-level-4" />
+                </div>
+                <span>More</span>
+              </div>
+            </div>
+
+            <div className="month-heatmap-weekdays">
+              <span>일</span>
+              <span>월</span>
+              <span>화</span>
+              <span>수</span>
+              <span>목</span>
+              <span>금</span>
+              <span>토</span>
+            </div>
+
+            <div className={`month-heatmap-grid ${authenticated ? "" : "month-heatmap-grid-locked"}`}>
+              {heatmapDays.map((day) =>
+                day.isPlaceholder ? (
+                  <div key={day.key} className="month-heatmap-placeholder" />
+                ) : (
+                  <div
+                    key={day.key}
+                    className={`month-heatmap-cell heatmap-level-${authenticated ? day.level : 0}`}
+                    title={`${selectedMonth}월 ${day.dayNumber}일 - ${formatDuration(day.totalSeconds)}`}
+                  >
+                    <span className="month-heatmap-day-number">{day.dayNumber}</span>
+                  </div>
+                )
+              )}
+            </div>
           </div>
 
           <div className="feature-list">

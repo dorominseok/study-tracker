@@ -4,6 +4,10 @@ function fetchDailyGoal() {
   return request("/daily-goal");
 }
 
+function fetchDailyGoalHistory() {
+  return request("/daily-goal/history");
+}
+
 function saveDailyGoal(targetMinutes) {
   return request("/daily-goal", {
     method: "PUT",
@@ -11,4 +15,4 @@ function saveDailyGoal(targetMinutes) {
   });
 }
 
-export { fetchDailyGoal, saveDailyGoal };
+export { fetchDailyGoal, fetchDailyGoalHistory, saveDailyGoal };
