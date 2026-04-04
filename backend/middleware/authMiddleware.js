@@ -22,6 +22,7 @@ function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
+    // 이후 라우트에서 필요한 사용자 식별 정보만 req.user에 담아 사용한다.
     req.user = {
       id: decoded.userId,
       email: decoded.email

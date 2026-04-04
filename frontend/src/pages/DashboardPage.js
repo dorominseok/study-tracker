@@ -42,6 +42,7 @@ function buildMonthlyHeatmap(sourceDays = [], year, month) {
       return { ...item, level: -1 };
     }
 
+    // 월간 히트맵이 과하게 흔들리지 않도록 공부 시간을 고정 단계 레벨로 변환한다.
     if (item.totalSeconds === 0) {
       return { ...item, level: 0 };
     }
@@ -128,6 +129,7 @@ function DashboardPage() {
 
     async function loadSummary() {
       try {
+        // 메인 화면 요약 카드는 여러 API 결과를 한 번에 합쳐서 보여준다.
         const [dailyData, goalData, sessionData, heatmapData] = await Promise.all([
           fetchDailyStatistics(),
           fetchDailyGoal(),

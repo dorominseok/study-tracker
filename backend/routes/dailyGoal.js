@@ -20,6 +20,7 @@ function formatDay(day) {
 }
 
 async function getTodayGoal(userId) {
+  // 오늘 날짜에 저장된 목표가 여러 개면 가장 최근 목표 1개를 반환한다.
   const [goals] = await dbPromise.query(
     "SELECT id, user_id, target_minutes, created_at FROM `DailyGoal` WHERE user_id = ? AND DATE(created_at) = CURDATE() ORDER BY created_at DESC, id DESC LIMIT 1",
     [userId]
@@ -45,6 +46,7 @@ router.get("/", async (req, res) => {
 
 router.get("/history", async (req, res) => {
   try {
+    // 하루에 목표를 여러 번 바꾼 경우에는 가장 마지막에 저장한 목표만 그날의 대표값으로 사용한다.
     const [rows] = await dbPromise.query(
       `
         SELECT

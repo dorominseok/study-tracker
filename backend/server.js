@@ -1,6 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const db = require("./db");
 const authRoutes = require("./routes/auth");
 const subjectRoutes = require("./routes/subject");
 const sessionRoutes = require("./routes/session");
@@ -25,19 +24,6 @@ app.use("/daily-goal", dailyGoalRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Study Tracker API running" });
-});
-
-app.get("/users", (req, res) => {
-  db.query("SELECT id, email, created_at FROM `User`", (err, result) => {
-    if (err) {
-      return res.status(500).json({
-        message: "Failed to fetch users.",
-        error: err.message
-      });
-    }
-
-    return res.json(result);
-  });
 });
 
 app.listen(PORT, () => {

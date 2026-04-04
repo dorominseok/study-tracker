@@ -39,6 +39,7 @@ router.get("/daily", async (req, res) => {
 
 router.get("/weekly", async (req, res) => {
   try {
+    // DB에 실제로 기록된 날짜만 내려주고, 비어 있는 날짜는 프론트에서 0으로 채운다.
     const [rows] = await dbPromise.query(
       "SELECT DATE(start_time) AS day, SUM(duration) AS totalSeconds FROM `StudySession` WHERE user_id = ? AND start_time >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) GROUP BY DATE(start_time) ORDER BY day ASC",
       [req.user.id]
@@ -72,6 +73,7 @@ router.get("/heatmap", async (req, res) => {
   }
 
   try {
+    // 히트맵은 요청한 월의 날짜별 공부 시간을 집계하며, 값이 없으면 현재 연월을 기준으로 조회한다.
     const [rows] = await dbPromise.query(
       `
         SELECT DATE(start_time) AS day, SUM(duration) AS totalSeconds

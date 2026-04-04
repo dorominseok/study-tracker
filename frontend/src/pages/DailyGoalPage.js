@@ -19,6 +19,7 @@ function DailyGoalPage() {
 
   async function loadPageData() {
     try {
+      // 현재 목표와 최근 목표 기록을 함께 불러와 페이지 초기 상태를 한 번에 맞춘다.
       const [goalData, historyData] = await Promise.all([
         fetchDailyGoal(),
         fetchDailyGoalHistory()

@@ -12,6 +12,7 @@ import TimerPage from "./pages/TimerPage";
 
 function App() {
   return (
+    // React Router 차기 버전 전환 경고를 줄이기 위해 future 옵션을 미리 적용한다.
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/" element={<DashboardPage />} />

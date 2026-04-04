@@ -15,6 +15,7 @@ function isValidEmail(email) {
 }
 
 function createToken(user) {
+  // 회원가입과 로그인에서 공통으로 사용할 JWT를 생성한다.
   return jwt.sign(
     {
       userId: user.id,
@@ -30,19 +31,19 @@ router.post("/register", async (req, res) => {
 
   if (!email || !password) {
     return res.status(400).json({
-      message: "email and password are required."
+      message: "이메일과 비밀번호를 입력해주세요."
     });
   }
 
   if (!isValidEmail(email)) {
     return res.status(400).json({
-      message: "Invalid email format."
+      message: "이메일 형식이 올바르지 않습니다."
     });
   }
 
   if (password.length < 6) {
     return res.status(400).json({
-      message: "Password must be at least 6 characters long."
+      message: "비밀번호는 6자 이상이어야 합니다."
     });
   }
 
@@ -54,10 +55,11 @@ router.post("/register", async (req, res) => {
 
     if (existingUsers.length > 0) {
       return res.status(409).json({
-        message: "Email is already registered."
+        message: "이미 가입된 이메일입니다."
       });
     }
 
+    // 비밀번호 원문을 저장하지 않고 해시 값만 DB에 저장한다.
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const [insertResult] = await dbPromise.query(
       "INSERT INTO `User` (email, password_hash) VALUES (?, ?)",
@@ -72,13 +74,13 @@ router.post("/register", async (req, res) => {
     const token = createToken(user);
 
     return res.status(201).json({
-      message: "User registered successfully.",
+      message: "회원가입이 완료되었습니다.",
       token,
       user
     });
   } catch (error) {
     return res.status(500).json({
-      message: "Failed to register user.",
+      message: "회원가입에 실패했습니다.",
       error: error.message
     });
   }
@@ -89,7 +91,7 @@ router.post("/login", async (req, res) => {
 
   if (!email || !password) {
     return res.status(400).json({
-      message: "email and password are required."
+      message: "이메일과 비밀번호를 입력해주세요."
     });
   }
 
@@ -101,7 +103,7 @@ router.post("/login", async (req, res) => {
 
     if (users.length === 0) {
       return res.status(401).json({
-        message: "아이디 또는 비밀번호가 잘못되었습니다."
+        message: "이메일 또는 비밀번호가 올바르지 않습니다."
       });
     }
 
@@ -110,14 +112,14 @@ router.post("/login", async (req, res) => {
 
     if (!isPasswordMatched) {
       return res.status(401).json({
-        message: "아이디 또는 비밀번호가 잘못되었습니다."
+        message: "이메일 또는 비밀번호가 올바르지 않습니다."
       });
     }
 
     const token = createToken(user);
 
     return res.status(200).json({
-      message: "Login successful.",
+      message: "로그인되었습니다.",
       token,
       user: {
         id: user.id,
@@ -126,7 +128,7 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({
-      message: "Failed to login.",
+      message: "로그인에 실패했습니다.",
       error: error.message
     });
   }

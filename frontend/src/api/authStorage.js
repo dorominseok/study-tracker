@@ -30,6 +30,7 @@ function getAuthUser() {
   try {
     return JSON.parse(stored);
   } catch (error) {
+    // 저장된 사용자 정보가 손상된 경우 앱이 깨지지 않도록 null을 반환한다.
     return null;
   }
 }

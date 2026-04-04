@@ -49,6 +49,7 @@ function StatisticsPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // 공부 기록이 없는 날도 포함해서 최근 7일을 항상 같은 길이의 차트 데이터로 맞춘다.
     const totalsByDay = new Map(
       weeklyRows.map((row) => [String(row.day).slice(0, 10), Number(row.totalSeconds || 0)])
     );
@@ -106,6 +107,7 @@ function StatisticsPage() {
         <div className="weekly-chart">
           {weeklyChartData.map((row) => {
             const ratio = maxWeeklySeconds > 0 ? row.totalSeconds / maxWeeklySeconds : 0;
+            // 값이 아주 작아도 막대가 완전히 사라지지 않도록 최소 높이를 둔다.
             const height = row.totalSeconds > 0 ? Math.max(ratio * 180, 14) : 8;
 
             return (

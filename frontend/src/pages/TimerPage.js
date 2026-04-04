@@ -19,6 +19,42 @@ function buildAlertFaviconUrl(isActive) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+function canUseNotifications() {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
+async function requestNotificationPermission() {
+  if (!canUseNotifications() || Notification.permission !== "default") {
+    return canUseNotifications() ? Notification.permission : "denied";
+  }
+
+  try {
+    return await Notification.requestPermission();
+  } catch (error) {
+    return "default";
+  }
+}
+
+function showAutoPauseNotification() {
+  if (!canUseNotifications() || Notification.permission !== "granted") {
+    return;
+  }
+
+  try {
+    const notification = new Notification("스터디 트래커", {
+      body: "탭을 30초 이상 벗어나 타이머가 자동으로 일시정지되었습니다.",
+      tag: "timer-auto-pause",
+      renotify: true
+    });
+
+    window.setTimeout(() => {
+      notification.close();
+    }, 5000);
+  } catch (error) {
+    // Fall back to the in-page notice if the browser blocks the notification.
+  }
+}
+
 function translateStatus(status) {
   if (status === "active") {
     return "공부 중";
@@ -51,6 +87,7 @@ function TimerPage() {
   const defaultFaviconHrefRef = useRef("");
 
   const currentSession = useMemo(
+    // 백엔드 정책상 하나만 존재하는 미완료 세션을 현재 타이머 대상으로 사용한다.
     () =>
       sessions.find(
         (session) => !session.end_time && (session.status === "active" || session.status === "paused")
@@ -113,6 +150,7 @@ function TimerPage() {
       defaultFaviconHrefRef.current = iconLink.getAttribute("href") || "";
     }
 
+    // 탭이 비활성화된 상태에서도 자동 일시정지 여부를 바로 알아차릴 수 있게 표시를 바꾼다.
     if (autoPauseNotice) {
       document.title = `${AUTO_PAUSE_TITLE} | ${DEFAULT_TITLE}`;
 
@@ -145,6 +183,7 @@ function TimerPage() {
     }
 
     async function autoPauseIfNeeded() {
+      // 지연 실행되는 visibility 콜백 안에서 오래된 session/memo 값을 참조하지 않도록 ref를 사용한다.
       const session = currentSessionRef.current;
 
       if (!session || session.status !== "active" || session.end_time || autoPauseInFlightRef.current) {
@@ -157,6 +196,7 @@ function TimerPage() {
       try {
         await pauseSession({ memo: memoRef.current });
         await refreshSessions();
+        showAutoPauseNotification();
         setAutoPauseNotice("탭을 30초 이상 벗어나 타이머가 자동으로 일시정지되었습니다.");
       } catch (error) {
         setMessage(error.message);
@@ -167,6 +207,7 @@ function TimerPage() {
     }
 
     function handleVisibilityChange() {
+      // 탭이 잠깐 숨겨진 경우는 무시하고, 유예 시간 동안 계속 숨겨져 있을 때만 자동 일시정지한다.
       if (document.visibilityState === "hidden") {
         clearHiddenTimeout();
         hiddenTimeoutRef.current = window.setTimeout(() => {
@@ -200,6 +241,7 @@ function TimerPage() {
 
     const duration = Number(session.duration || 0);
 
+    // 백엔드에는 확정된 활성 구간만 duration으로 저장되어 있으므로, active 상태에서는 현재 진행분을 화면에서 더해준다.
     if (session.status !== "active" || session.end_time) {
       return duration;
     }
@@ -221,6 +263,7 @@ function TimerPage() {
     setAutoPauseNotice("");
 
     try {
+      await requestNotificationPermission();
       await startSession({
         subjectId: subjectId ? Number(subjectId) : null,
         memo
@@ -254,6 +297,7 @@ function TimerPage() {
     setAutoPauseNotice("");
 
     try {
+      await requestNotificationPermission();
       await resumeSession({ memo });
       await refreshSessions();
     } catch (error) {

@@ -7,6 +7,7 @@ function ProtectedLayout() {
   const user = getAuthUser();
 
   if (!isAuthenticated()) {
+    // 로그인 후 원래 접근하려던 페이지로 돌아갈 수 있도록 현재 경로를 함께 넘긴다.
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 

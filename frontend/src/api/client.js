@@ -22,6 +22,7 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401) {
+      // 401 응답은 세션 만료로 보고 저장된 인증 정보를 지운다.
       clearAuthSession();
     }
 

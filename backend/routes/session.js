@@ -51,6 +51,7 @@ router.post("/start", async (req, res) => {
   }
 
   try {
+    // 타이머 화면은 사용자당 미완료 세션이 하나라고 가정하므로 중복 시작을 막는다.
     const [openSessions] = await dbPromise.query(
       "SELECT id FROM `StudySession` WHERE user_id = ? AND end_time IS NULL AND status IN ('active', 'paused') ORDER BY start_time DESC LIMIT 1",
       [req.user.id]
@@ -105,6 +106,7 @@ router.post("/pause", async (req, res) => {
     const session = sessions[0];
     const pausedAt = new Date();
     const activeSince = session.last_resume_time || session.start_time;
+    // 마지막 재개 시점 이후의 활성 구간만 계산해서 누적 공부 시간에 반영한다.
     const nextDuration =
       Number(session.duration || 0) +
       Math.max(0, Math.floor((pausedAt.getTime() - new Date(activeSince).getTime()) / 1000));
@@ -148,6 +150,7 @@ router.post("/resume", async (req, res) => {
     const resumedAt = new Date();
     const nextMemo = memo !== null ? memo : session.memo;
 
+    // 재개 시점부터 새로운 활성 구간이 시작되므로 다음 pause/end 계산 기준을 다시 잡는다.
     await dbPromise.query(
       "UPDATE `StudySession` SET memo = ?, status = 'active', last_resume_time = ? WHERE id = ? AND user_id = ?",
       [nextMemo, resumedAt, session.id, req.user.id]
@@ -195,6 +198,7 @@ router.post("/end", async (req, res) => {
     const session = sessions[0];
     const endTime = new Date();
     const activeSince = session.last_resume_time || session.start_time;
+    // paused 상태는 이미 활성 시간이 duration에 반영되어 있고, active 상태만 종료 시 추가 계산이 필요하다.
     const additionalDuration =
       session.status === "active"
         ? Math.max(0, Math.floor((endTime.getTime() - new Date(activeSince).getTime()) / 1000))
