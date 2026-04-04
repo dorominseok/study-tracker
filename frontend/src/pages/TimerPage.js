@@ -258,6 +258,11 @@ function TimerPage() {
   }
 
   async function handleStart() {
+    if (!subjectId) {
+      setMessage("과목을 선택해주세요.");
+      return;
+    }
+
     setLoading(true);
     setMessage("");
     setAutoPauseNotice("");

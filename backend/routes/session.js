@@ -40,9 +40,16 @@ function parseOptionalId(value, message) {
 }
 
 router.post("/start", async (req, res) => {
-  const subjectIdResult = parseOptionalId(req.body.subjectId, "Invalid subject id.");
+  const rawSubjectId = req.body.subjectId;
+  const subjectIdResult = parseOptionalId(rawSubjectId, "Invalid subject id.");
   const memo = typeof req.body.memo === "string" ? req.body.memo.trim() : null;
   const subjectId = subjectIdResult.value;
+
+  if (rawSubjectId === undefined || rawSubjectId === null || rawSubjectId === "") {
+    return res.status(400).json({
+      message: "과목을 선택해주세요."
+    });
+  }
 
   if (subjectIdResult.error) {
     return res.status(400).json({
