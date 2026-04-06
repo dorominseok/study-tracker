@@ -359,6 +359,7 @@ function TimerPage() {
   }
 
   const primaryAction = getPrimaryAction();
+  const subjectSelectionError = message === "과목을 선택해주세요.";
 
   return (
     <div className="page-view">
@@ -394,7 +395,18 @@ function TimerPage() {
             <label className="field-label" htmlFor="timer-subject">
               과목
             </label>
-            <select id="timer-subject" value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
+            {subjectSelectionError ? <div className="field-inline-error">{message}</div> : null}
+            <select
+              id="timer-subject"
+              value={subjectId}
+              onChange={(event) => {
+                setSubjectId(event.target.value);
+
+                if (subjectSelectionError) {
+                  setMessage("");
+                }
+              }}
+            >
               <option value="">과목 없음</option>
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
@@ -431,7 +443,7 @@ function TimerPage() {
         </div>
       </div>
 
-      {message ? <div className="status-text">{message}</div> : null}
+      {message && !subjectSelectionError ? <div className="status-text">{message}</div> : null}
     </div>
   );
 }
